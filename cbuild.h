@@ -1,23 +1,22 @@
 #ifndef CBUILD_H
-#define CBUILD_H
-
-#include <stdio.h>
+#define CBUILD_H#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <json-c/json.h> // Ensure you have the json-c library installed
 
 typedef struct {
     char *name;
-    char *build_command;
+    char *source_file;
+    char *build_mode;  // "debug", "release", or "testing"
 } Target;
 
 typedef struct {
     Target *targets;
     int target_count;
-} BuildConfig;
+} CBuildConfig;
 
-BuildConfig load_config(const char *filename) {
-    BuildConfig config = {0};
+CBuildConfig load_config(const char *filename) {
+    CBuildConfig config = {0};
     struct json_object *parsed_json;
     struct json_object *targets_json;
     size_t target_count;
@@ -47,13 +46,16 @@ BuildConfig load_config(const char *filename) {
     for (size_t i = 0; i < target_count; i++) {
         struct json_object *target_json = json_object_array_get_idx(targets_json, i);
         struct json_object *name_json;
-        struct json_object *command_json;
+        struct json_object *source_file_json;
+        struct json_object *build_mode_json;
 
         json_object_object_get_ex(target_json, "name", &name_json);
-        json_object_object_get_ex(target_json, "command", &command_json);
-        
+        json_object_object_get_ex(target_json, "source_file", &source_file_json);
+        json_object_object_get_ex(target_json, "build_mode", &build_mode_json);
+
         config.targets[i].name = strdup(json_object_get_string(name_json));
-        config.targets[i].build_command = strdup(json_object_get_string(command_json));
+        config.targets[i].source_file = strdup(json_object_get_string(source_file_json));
+        config.targets[i].build_mode = strdup(json_object_get_string(build_mode_json));
     }
     
     free(data);
@@ -68,45 +70,32 @@ void run_command(const char *command) {
     }
 }
 
-int build_target(BuildConfig config, const char *target) {
-    // Check if target exists in the configuration
-    for (int i = 0; i < config.target_count; i++) {
-        if (strcmp(config.targets[i].name, target) == 0) {
-            // Run the build command for the target
-            run_command(config.targets[i].build_command);
-            return 1; // Success
-        }
+void build_target(Target target) {
+    char build_command[512];
+
+    // Set compiler flags based on the build mode
+    if (strcmp(target.build_mode, "debug") == 0) {
+        snprintf(build_command, sizeof(build_command), "gcc -g %s -o %s", target.source_file, target.name);
+    } else if (strcmp(target.build_mode, "release") == 0) {
+        snprintf(build_command, sizeof(build_command), "gcc -O2 %s -o %s", target.source_file, target.name);
+    } else if (strcmp(target.build_mode, "testing") == 0) {
+        snprintf(build_command, sizeof(build_command), "gcc -g -DTESTING %s -o %s", target.source_file, target.name);
+    } else {
+        fprintf(stderr, "Unknown build mode: %s\n", target.build_mode);
+        return;
     }
-    return 0; // Target not found
+
+    // Run the build command
+    run_command(build_command);
 }
 
-void free_config(BuildConfig config) {
+void free_config(CBuildConfig config) {
     for (int i = 0; i < config.target_count; i++) {
         free(config.targets[i].name);
-        free(config.targets[i].build_command);
+        free(config.targets[i].source_file);
+        free(config.targets[i].build_mode);
     }
     free(config.targets);
-}
-
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "Usage: CBuild <target>\n");
-        return 1;
-    }
-
-    // Load configuration
-    BuildConfig config = load_config("CBuild.json");
-    
-    // Build the specified target
-    if (!build_target(config, argv[1])) {
-        fprintf(stderr, "Error building target: %s\n", argv[1]);
-        free_config(config);
-        return 1;
-    }
-
-    printf("Build completed successfully!\n");
-    free_config(config);
-    return 0;
 }
 
 #endif // CBUILD_H
