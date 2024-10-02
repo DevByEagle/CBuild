@@ -7,7 +7,7 @@ Before you begin, ensure you have the following installed:
 | Dependency | Version |
 | :--- | :---|
 | **GCC** | *lastes* |
-| libjson-c-dev | *lastes* |
+| **json-c** | *lastes* |
 
 ## Config Project
 
@@ -23,12 +23,6 @@ In you project directory you will see a **`project.json`** that is the CBuild pr
     }
   ]
 }
-```
-
-## Building Project
-
-```.sh
-gcc -o CBuild.exe build.c
 ```
 
 ## Run Project
