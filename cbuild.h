@@ -1,5 +1,7 @@
 #ifndef CBUILD_H
-#define CBUILD_H#include <stdio.h>
+#define CBUILD_H
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <json-c/json.h> // Ensure you have the json-c library installed
