@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <json-c/json.h> // Ensure you have the json-c library installed
+#include <json-c/json.h>
 
 typedef struct {
     char *name;
@@ -75,7 +75,12 @@ void run_command(const char *command) {
 void build_target(Target target) {
     char build_command[512];
 
-    // Set compiler flags based on the build mode
+    // Check the compiler being used
+#ifdef _MSC_VER
+    // MSVC
+    snprintf(build_command, sizeof(build_command), "cl /EHsc /Fe:%s %s", target.name, target.source_file);
+#elif defined(__MINGW32__) || defined(__MINGW64__)
+    // MinGW
     if (strcmp(target.build_mode, "debug") == 0) {
         snprintf(build_command, sizeof(build_command), "gcc -g %s -o %s", target.source_file, target.name);
     } else if (strcmp(target.build_mode, "release") == 0) {
@@ -86,6 +91,11 @@ void build_target(Target target) {
         fprintf(stderr, "Unknown build mode: %s\n", target.build_mode);
         return;
     }
+#else
+    // Other compilers (optional)
+    fprintf(stderr, "Unsupported compiler or platform.\n");
+    return;
+#endif
 
     // Run the build command
     run_command(build_command);
